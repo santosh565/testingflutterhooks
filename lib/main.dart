@@ -21,11 +21,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-Stream<String> getTime() => Stream.periodic(
-      const Duration(seconds: 1),
-      (_) => DateTime.now().toIso8601String(),
-    );
-
 class MyHomePage extends HookWidget {
   const MyHomePage({
     super.key,
@@ -33,16 +28,28 @@ class MyHomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateTime = useStream(getTime());
+    final controller = useTextEditingController();
+    final text = useState('');
+    useEffect(
+      () {
+        controller.addListener(() {
+          text.value = controller.text;
+        });
+        return null;
+      },
+      [controller],
+    );
     return Scaffold(
       appBar: AppBar(
-        title: Text(dateTime.data ?? 'Home Page'),
+        title: const Text('Home Page'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[],
-        ),
+      body: Column(
+        children: <Widget>[
+          TextField(
+            controller: controller,
+          ),
+          Text('You typed ${text.value}'),
+        ],
       ),
     );
   }
