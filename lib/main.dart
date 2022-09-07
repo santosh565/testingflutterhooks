@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 extension CompactMap<T> on Iterable<T?> {
@@ -7,21 +8,24 @@ extension CompactMap<T> on Iterable<T?> {
       map(transform ?? (e) => e).where((e) => e != null).cast();
 }
 
-void testIt() {
-  final values = [1, 2, null, 3];
-  // final nonNullValues = values.compactMap();
-  // debugPrint(nonNullValues.toString());
-  // final nonNullValues = values.compactMap((e) {
-  //   if (e != null && e > 10) {
-  //     return e;
-  //   } else {
-  //     return null;
-  //   }
-  // });
+class CountDown extends ValueNotifier<int> {
+  late StreamSubscription sub;
+  CountDown({required int from}) : super(from) {
+    sub = Stream.periodic(const Duration(seconds: 1), (v) => from - v)
+        .takeWhile((value) => value >= 0)
+        .listen((value) {
+      this.value = value;
+    });
+  }
+
+  @override
+  void dispose() {
+    sub.cancel();
+    super.dispose();
+  }
 }
 
 void main() {
-  testIt();
   runApp(const MyApp());
 }
 
@@ -41,9 +45,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-const url =
-    'https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885_960_720.jpg';
-
 class MyHomePage extends HookWidget {
   const MyHomePage({
     super.key,
@@ -51,32 +52,13 @@ class MyHomePage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final image =
-    // useFuture(NetworkAssetBundle(Uri.parse(url))
-    //     .load(url)
-    //     .then((data) => data.buffer.asUint8List())
-    //     .then(
-    //       (data) => Image.memory(data),
-    //     ));
-
-    final future = useMemoized((() => NetworkAssetBundle(Uri.parse(url))
-        .load(url)
-        .then((data) => data.buffer.asUint8List())
-        .then(
-          (data) => Image.memory(data),
-        )));
-
-    final snapShot = useFuture(future);
+    final countDown = useMemoized((() => CountDown(from: 20)));
+    final notifier = useListenable(countDown);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Page'),
-      ),
-      body: Column(
-        children: [
-          snapShot.data,
-        ].compactMap().toList(),
-      ),
-    );
+        appBar: AppBar(
+          title: const Text('Home Page'),
+        ),
+        body: Text(notifier.value.toString()));
   }
 }
